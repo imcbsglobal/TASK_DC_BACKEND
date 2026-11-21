@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import models
 from django.utils import timezone
-
+from .crypto import decrypt, encrypt
 
 class Invoice(models.Model):
     client_id = models.CharField(max_length=50, db_index=True)
@@ -70,6 +70,7 @@ class ClientUser(models.Model):
     client_id = models.CharField(max_length=50, db_index=True)
     username = models.CharField(max_length=100)
     password = models.CharField(max_length=128)
+    password_enc = models.TextField(blank=True, default='')
     full_name = models.CharField(max_length=150, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -82,6 +83,10 @@ class ClientUser(models.Model):
 
     def set_password(self, raw):
         self.password = make_password(raw)
+        self.password_enc = encrypt(raw)
+
+    def reveal_password(self):
+        return decrypt(self.password_enc)
 
     def check_password(self, raw):
         return check_password(raw, self.password)

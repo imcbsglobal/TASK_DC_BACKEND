@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import transaction
 from rest_framework import serializers
 
-from .models import Invoice, InvoiceItem
+from .models import ClientUser, Invoice, InvoiceItem
 
 TOLERANCE = Decimal('1.00')
 
@@ -88,3 +88,43 @@ class ExportInvoiceSerializer(serializers.ModelSerializer):
             'sgst_amount': o.sgst_amount, 'igst_amount': o.igst_amount, 'round_off': o.round_off,
             'total_amount': o.total_amount,
         }
+
+class AdminLoginSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
+class ClientUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, min_length=6)
+    password_plain = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ClientUser
+        fields = ['id', 'client_id', 'username', 'password', 'password_plain',
+                  'full_name', 'is_active', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def get_password_plain(self, obj):
+        return obj.reveal_password()
+
+    def validate(self, attrs):
+        if self.instance is None and not attrs.get('password'):
+            raise serializers.ValidationError({'password': 'Password is required.'})
+        return attrs
+
+    def create(self, validated):
+        raw = validated.pop('password')
+        user = ClientUser(**validated)
+        user.set_password(raw)          # hashed, never stored plain
+        user.save()
+        return user
+
+    def update(self, instance, validated):
+        raw = validated.pop('password', None)
+        for k, v in validated.items():
+            setattr(instance, k, v)
+        if raw:                          
+            instance.set_password(raw)
+            instance.tokens.all().delete()   
+        instance.save()
+        return instance    

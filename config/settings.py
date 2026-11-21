@@ -49,10 +49,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     'rest_framework',
+    'rest_framework.authtoken',   
+    'corsheaders',                
     'apps.invoices',
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -143,4 +146,18 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {'login': '10/min'},
 }
 
-TOKEN_TTL_DAYS = 30
+TOKEN_TTL_DAYS = 365
+
+SUPERUSER_ENDPOINT = os.getenv('SUPERUSER_ENDPOINT', '')
+ADMIN_TOKEN_TTL_SECONDS = 12 * 60 * 60
+
+CORS_ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
+    if o.strip()
+]
+
+LICENSE_API_URL = os.getenv(
+    'LICENSE_API_URL', 'https://activate.imcbs.com/mobileapp/api/project/taskdc/')
+
+PASSWORD_VIEW_KEY = os.getenv('PASSWORD_VIEW_KEY', '')
